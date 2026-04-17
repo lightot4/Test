@@ -5,7 +5,7 @@
 ## 구성 파일
 - `manifest.json`: MV3 설정
 - `popup.html`, `popup.js`: 버튼 UI와 실행 제어
-- `content.js`: 페이지 DOM에서 매물 목록 추출
+- `content.js`: 페이지 DOM에서 매물 목록 추출 + `.pagenation` 기반 다음 페이지 이동
 - `service-worker.js`: 페이지 순회/중복제거/전송
 - `Code.gs`: Apps Script Web App 수신 및 시트 적재
 
@@ -28,7 +28,15 @@
 3. `수집 시작` 클릭
 4. 완료 후 시트의 `RAW`, `NORMALIZED` 탭 확인
 
+## 페이지 순회 방식 (현재 구현)
+- 현재 페이지: `.pagenation .selecPg`
+- 다음 페이지 우선순위
+  1. `.pagenation .pagenav` 중 `onclick="submit_page('현재+1')"`
+  2. `.pagenation .pagenav`의 `>` 버튼
+  3. `.page-direct` 입력 + `이동` 버튼
+- URL이 바뀌지 않는 AJAX 페이지도 지원하도록, 페이지 번호 + 첫 물건 키 기준으로 실제 페이지 변경을 확인합니다.
+
 ## 주의
 - 본 MVP는 페이지 DOM 구조 변화에 민감합니다.
 - 사이트 이용약관, robots 정책, 법적 제한을 반드시 확인하세요.
-- `전체 페이지` 모드는 `다음` 버튼 탐색 기반이라 사이트 구조에 맞춰 선택자 보정이 필요할 수 있습니다.
+- 테이블 컬럼명이 달라지면 `content.js` 추출 규칙을 사이트 구조에 맞게 보정하세요.

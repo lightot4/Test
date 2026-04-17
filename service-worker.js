@@ -1,5 +1,6 @@
-const PAGE_WAIT_MS = 1800;
-const MAX_PAGES = 100;
+const PAGE_WAIT_MS = 1600;
+const MAX_PAGES = 200;
+const PAGE_POLL_RETRY = 6;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -40,39 +41,75 @@ function sendMessageToTab(tabId, message) {
   });
 }
 
-async function collectVisible(tabId) {
+async function extractPage(tabId) {
   const response = await sendMessageToTab(tabId, { type: "EXTRACT_VISIBLE" });
   if (!response?.ok) {
     throw new Error("페이지 데이터 추출 실패");
   }
-  return response.items || [];
+
+  return {
+    items: response.items || [],
+    pageNumber: Number.isFinite(response.pageNumber) ? response.pageNumber : null,
+    pageUrl: response.pageUrl || ""
+  };
+}
+
+function getPageSignature(extraction) {
+  const firstItem = extraction.items[0];
+  const firstKey = firstItem
+    ? `${firstItem.caseNumber || ""}|${firstItem.detailUrl || ""}|${firstItem.minimumPrice ?? ""}`
+    : "empty";
+  return `${extraction.pageNumber ?? "np"}|${firstKey}|${extraction.items.length}`;
+}
+
+async function waitForPageChange(tabId, beforeExtraction) {
+  const beforeSignature = getPageSignature(beforeExtraction);
+
+  for (let attempt = 0; attempt < PAGE_POLL_RETRY; attempt += 1) {
+    await sleep(PAGE_WAIT_MS);
+    const afterExtraction = await extractPage(tabId);
+    const afterSignature = getPageSignature(afterExtraction);
+
+    if (afterSignature !== beforeSignature) {
+      return afterExtraction;
+    }
+  }
+
+  return beforeExtraction;
+}
+
+async function collectVisible(tabId) {
+  const extraction = await extractPage(tabId);
+  return extraction.items;
 }
 
 async function collectAllPages(tabId) {
   const result = [];
-  const seenUrls = new Set();
+  const visitedSignatures = new Set();
+
+  let extraction = await extractPage(tabId);
 
   for (let page = 1; page <= MAX_PAGES; page += 1) {
-    const extraction = await sendMessageToTab(tabId, { type: "EXTRACT_VISIBLE" });
-    if (!extraction?.ok) {
-      throw new Error(`페이지 ${page} 추출 실패`);
-    }
-
-    const items = extraction.items || [];
-    result.push(...items);
-
-    const currentUrl = extraction.pageUrl;
-    if (seenUrls.has(currentUrl)) {
+    const signature = getPageSignature(extraction);
+    if (visitedSignatures.has(signature)) {
       break;
     }
-    seenUrls.add(currentUrl);
+    visitedSignatures.add(signature);
+    result.push(...extraction.items);
 
     const next = await sendMessageToTab(tabId, { type: "GO_NEXT_PAGE" });
     if (!next?.ok || !next.moved) {
       break;
     }
 
-    await sleep(PAGE_WAIT_MS);
+    const movedExtraction = await waitForPageChange(tabId, extraction);
+    const movedSignature = getPageSignature(movedExtraction);
+
+    if (movedSignature === signature) {
+      break;
+    }
+
+    extraction = movedExtraction;
   }
 
   return result;
