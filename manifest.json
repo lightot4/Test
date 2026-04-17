@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "GG Auction to Sheets",
+  "description": "Collect listings from a GG Auction results page, normalize them, and send to Google Sheets via Apps Script.",
+  "version": "0.1.0",
+  "action": {
+    "default_title": "GG Auction Crawler",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.ggi.co.kr/*",
+    "https://script.google.com/*"
+  ],
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.ggi.co.kr/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
