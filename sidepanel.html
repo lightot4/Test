@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GG Auction Side Panel</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 10px; }
+      h1 { font-size: 18px; margin: 0 0 10px; }
+      label { font-size: 12px; font-weight: 700; display: block; margin-top: 8px; }
+      input, select, button { width: 100%; box-sizing: border-box; margin-top: 6px; }
+      button { height: 38px; border: 0; border-radius: 6px; background: #1565c0; color: #fff; }
+      button:disabled { opacity: 0.6; }
+      #summary { margin-top: 10px; font-size: 12px; padding: 8px; background: #f5f7fa; border-radius: 6px; }
+      #log { margin-top: 10px; max-height: 300px; overflow: auto; border: 1px solid #ddd; border-radius: 6px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th, td { border-bottom: 1px solid #eee; padding: 6px; text-align: left; }
+      .ok { color: #1b5e20; }
+      .warn { color: #e65100; }
+      .error { color: #b71c1c; }
+    </style>
+  </head>
+  <body>
+    <h1>지지옥션 → 스프레드시트</h1>
+
+    <label for="webhookUrl">Apps Script Web App URL</label>
+    <input id="webhookUrl" type="url" placeholder="https://script.google.com/.../exec" />
+
+    <label for="scopeMode">수집 범위</label>
+    <select id="scopeMode">
+      <option value="visible">현재 화면(보이는 목록)</option>
+      <option value="all">페이지 순회(다음 버튼 기반)</option>
+    </select>
+
+    <button id="saveBtn" type="button">URL 저장</button>
+    <button id="crawlBtn" type="button">수집 시작</button>
+
+    <div id="summary">대기 중</div>
+
+    <div id="log">
+      <table>
+        <thead>
+          <tr>
+            <th>페이지</th>
+            <th>유효 매물</th>
+            <th>누적 유니크</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+
+    <script src="sidepanel.js"></script>
+  </body>
+</html>
