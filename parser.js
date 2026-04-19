@@ -64,8 +64,36 @@
 
   function parseSpecialConditions(text) {
     return [...new Set(Array.from(text.matchAll(/\[([^\]]+)\]/g)).map((m) => cleanText(m[1]))
-      .filter((t) => t && !/(?:로|길|대로|번길)\s*\d/.test(t) && !/^\d+$/.test(t))
+      .filter((t) => t && !/(?:로|길|대로|번길)\s*\d/.test(t) && !/^\d+$/.test(t) && !/평형/.test(t))
       .map(normalizeConditionToken))].join("|");
+  }
+
+  function parseAddressLine(line) {
+    const normalized = cleanText(line)
+      .replace(/\s*,\s*/g, ", ")
+      .replace(/\s+\|\s+/g, " ")
+      .replace(/\s{2,}/g, " ");
+
+    const roadMatch = normalized.match(/\[([^\]]*(?:로|길|대로|번길)[^\]]*)\]/);
+    const road = roadMatch ? cleanText(roadMatch[1]) : "";
+
+    let core = cleanText(normalized.replace(/\[[^\]]+\]/g, ""));
+    core = core.replace(/(건물\s*\d+[\d.,]*㎡.*|감정가.*|최저가.*|\d{1,3}(?:,\d{3}){1,}.*)$/, "").trim();
+
+    const split = core.match(/^(.*?(?:동|읍|면)\s*\d+(?:-\d+)?(?:\s*,\s*\d+(?:-\d+)?)*)\s+(.+)$/);
+    if (split) {
+      return {
+        소재지: cleanText(split[1]),
+        물건기본내역: cleanText(split[2]),
+        도로명주소: road
+      };
+    }
+
+    return {
+      소재지: core,
+      물건기본내역: "",
+      도로명주소: road
+    };
   }
 
   function parseAdditionalInfo(text) {
@@ -82,12 +110,12 @@
     const head = parseStartLine(text);
     if (!head) return null;
 
-    const addressLine = lines.find((line) => /(시|군|구).+\[.+(로|길|대로)/.test(line)) || "";
+    const addressLine =
+      lines.find((line) => /(시|군|구).+\[[^\]]*(?:로|길|대로|번길)/.test(line)) ||
+      ((text.match(/([가-힣]{2,}\s+[가-힣0-9]+(?:시|군|구).*?\[[^\]]*(?:로|길|대로|번길)[^\]]*\])/) || ["", ""])[1]) ||
+      "";
     const buildingLine = lines.find((line) => /건물\s*\d+/.test(line) && /토지\s*\d+/.test(line)) || "";
-
-    const road = ((addressLine.match(/\[([^\]]+)\]/) || ["", ""])[1]) || ((text.match(/\[([^\]]*(?:로|길|대로|번길)[^\]]*)\]/) || ["", ""])[1]) || "";
-    const 소재지 = cleanText(addressLine.replace(/\[[^\]]+\]/g, ""));
-    const 물건기본내역 = [소재지, buildingLine].filter(Boolean).join(" | ");
+    const addressParts = parseAddressLine(addressLine);
 
     const buildingSqm = ((buildingLine.match(/건물\s*([\d.]+)㎡/) || ["", ""])[1]);
     const buildingPyeong = ((buildingLine.match(/건물\s*[\d.]+㎡\s*\((\d+)평\)/) || ["", ""])[1]);
@@ -114,9 +142,9 @@
       용도: head.용도,
       법원계: head.법원계,
       사건번호: head.사건번호,
-      물건기본내역,
-      소재지,
-      도로명주소: road,
+      물건기본내역: addressParts.물건기본내역,
+      소재지: addressParts.소재지,
+      도로명주소: addressParts.도로명주소,
       "건물㎡": buildingSqm,
       건물평: buildingPyeong,
       평형표기: ptype,
@@ -151,5 +179,5 @@
       .filter((block) => /(?:19|20)\d{2}-\d+(?:\[\d+\])?/.test(block));
   }
 
-  return { cleanText, shouldExcludeText, parseListingBlock, splitListingBlocks, parseStartLine };
+  return { cleanText, shouldExcludeText, parseListingBlock, splitListingBlocks, parseStartLine, parseAddressLine };
 });

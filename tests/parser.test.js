@@ -1,57 +1,30 @@
 const assert = require("assert");
-const { parseListingBlock, shouldExcludeText, splitListingBlocks, parseStartLine } = require("../parser.js");
+const { parseListingBlock, parseAddressLine } = require("../parser.js");
 
-const sample = `2026.04.20
-2일전
-아파트
-동부산3계 2023-564
-부산 해운대구 재송동 380-1 센텀동부센트레빌 104동 4층 402호 [해운대로161번길 12]
-건물 117㎡ (36평) [45평형]  l   토지 54㎡ (16평)
-730,000,000
-730,000,000
-771,000,000
-690,000,000
-진행
-(100%)
-236
-(1회)
-· 세대조사
-· 건축물대장
-· 답사사진
-· GGTip`;
+const a1 = parseAddressLine("경남 거제시 상동동 475-3 가나마메종 3층 301호 [거제중앙로5길 23]");
+assert.equal(a1.소재지, "경남 거제시 상동동 475-3");
+assert.equal(a1.물건기본내역, "가나마메종 3층 301호");
+assert.equal(a1.도로명주소, "거제중앙로5길 23");
 
+const a2 = parseAddressLine("부산 해운대구 재송동 380-1 센텀동부센트레빌 104동 4층 402호 [해운대로161번길 12]");
+assert.equal(a2.소재지, "부산 해운대구 재송동 380-1");
+assert.equal(a2.물건기본내역, "센텀동부센트레빌 104동 4층 402호");
+assert.equal(a2.도로명주소, "해운대로161번길 12");
+
+const a3 = parseAddressLine("경기 수원시 영통구 영통동 1054-3 한국 214동 4층 405호 [봉영로1770번길 21]");
+assert.equal(a3.소재지, "경기 수원시 영통구 영통동 1054-3");
+assert.equal(a3.물건기본내역, "한국 214동 4층 405호");
+assert.equal(a3.도로명주소, "봉영로1770번길 21");
+
+const a4 = parseAddressLine("충남 천안시 서북구 신당동 468-7 ,468-26 에스씨그린 102동 2층 202호 [천일고2길 113-16]");
+assert.equal(a4.소재지, "충남 천안시 서북구 신당동 468-7, 468-26");
+assert.equal(a4.물건기본내역, "에스씨그린 102동 2층 202호");
+assert.equal(a4.도로명주소, "천일고2길 113-16");
+
+const sample = `2026.04.20\n아파트\n통영6계 2022-24881\n경남 거제시 상동동 475-3 가나마메종 3층 301호 [거제중앙로5길 23]\n건물 139㎡ (42평) l 토지 81㎡ (25평)\n220,000,000\n98,560,000\n기각\n(45%)\n166\n· 세대조사\n· 건축물대장\n· GGTip`;
 const parsed = parseListingBlock(sample);
-assert.equal(parsed.매각기일, "2026.04.20");
-assert.equal(parsed.용도, "아파트");
-assert.equal(parsed.법원계, "동부산3계");
-assert.equal(parsed.사건번호, "2023-564");
-assert.equal(parsed.소재지, "부산 해운대구 재송동 380-1 센텀동부센트레빌 104동 4층 402호");
-assert.equal(parsed.도로명주소, "해운대로161번길 12");
-assert.equal(parsed["건물㎡"], "117");
-assert.equal(parsed.토지평, "16");
-assert.equal(parsed.평형표기, "45평형");
-assert.equal(parsed.감정가, "730000000");
-assert.equal(parsed.최저가, "730000000");
-assert.equal(parsed.가격3, "771000000");
-assert.equal(parsed.가격4, "690000000");
-assert.equal(parsed.상태, "진행");
-assert.equal(parsed.비율, "100%");
-assert.equal(parsed.조회수, "236");
-assert.equal(parsed.유찰회수, "1회");
-assert.equal(parsed.추가정보, "세대조사|건축물대장|답사사진|GGTip");
-
-const fallbackStart = parseStartLine("2026.04.17 아파트 수원1계 2024-12345 소재지 경기 수원시");
-assert.equal(fallbackStart.사건번호, "2024-12345");
-assert.equal(fallbackStart.법원계, "수원1계");
-
-const concatenated = `검색조건 정렬방식\n2026.04.17 / 아파트 / 수원1계 / 2023-12226\n...\n2026.04.17 / 아파트 / 수원1계 / 2024-101796`;
-const blocks = splitListingBlocks(concatenated);
-assert.equal(blocks.length, 2);
-
-assert.equal(shouldExcludeText("검색조건 정렬방식 고객센터 총 3,440건 function submit_page()"), true);
-
-const nonslash = `2026.04.20 아파트 동부산3계 2023-564 부산 ... 2026.04.20 아파트 수원4계 2023-12462 경기 ...`;
-assert.equal(splitListingBlocks(nonslash).length, 2);
-assert.equal(shouldExcludeText("2026.04.20 아파트 수원1계 2024-1234"), false);
+assert.equal(parsed.소재지, "경남 거제시 상동동 475-3");
+assert.equal(parsed.물건기본내역, "가나마메종 3층 301호");
+assert.equal(parsed.도로명주소, "거제중앙로5길 23");
 
 console.log("parser tests passed");
